@@ -76,17 +76,38 @@ end
     return nothing
 end
 
-# Zero-allocation iterator over a node's intrusive child list.
+# Zero-allocation iterator over a node's intrusive child list. The iterator is a
+# single-pointer immutable; `@inline` on construction (`path_children`) and the
+# `iterate` methods lets the compiler stack-allocate it and union-split the
+# `iterate` result, so `for c in path_children(n)` allocates nothing.
 struct PathChildren{N}
     head::Union{N, Nothing}
 end
 Base.IteratorSize(::Type{<:PathChildren}) = Base.SizeUnknown()
 Base.eltype(::Type{PathChildren{N}}) where {N} = N
-Base.iterate(pc::PathChildren) = pc.head === nothing ? nothing : (pc.head, pc.head)
-function Base.iterate(::PathChildren, node)
-    nxt = node.aug.nextSib
-    return nxt === nothing ? nothing : (nxt, nxt)
-end
+@inline _pc_step(::Nothing) = nothing
+@inline _pc_step(node::Node) = (node, node)
+@inline Base.iterate(pc::PathChildren) = _pc_step(pc.head)
+@inline Base.iterate(::PathChildren, node::Node) = _pc_step(node.aug.nextSib)
+
+"""
+    first_path_child(n)
+    next_path_sibling(n)
+
+Zero-allocation primitives for walking a node's intrusive child list directly:
+
+    c = first_path_child(node)
+    while c !== nothing
+        # use c
+        c = next_path_sibling(c)
+    end
+
+Prefer these over `for c in path_children(node)` on hot paths: the `for`-loop
+materializes a (non-isbits) iterator that persists across the loop and the
+compiler may heap-allocate it. These are pure pointer reads — nothing allocates.
+"""
+@inline first_path_child(n::Node) = n.aug.firstChild
+@inline next_path_sibling(n::Node) = n.aug.nextSib
 
 function Node{T,A}(vertex::T) where {T,A}
     children = Union{Node{T,A}, Nothing}[nothing, nothing]
@@ -178,7 +199,7 @@ Iterate the path-children of `n` (zero-allocation walk of its intrusive child
 list). Defined only for augmentations that track path-children (`PathAug`,
 `PopAug`) — represented-tree enumeration requires one of those.
 """
-path_children(n::Node{T, PathAug{T}}) where {T} =
+@inline path_children(n::Node{T, PathAug{T}}) where {T} =
     PathChildren{Node{T, PathAug{T}}}(n.aug.firstChild)
 
 # ---------------------------------------------------------------------------

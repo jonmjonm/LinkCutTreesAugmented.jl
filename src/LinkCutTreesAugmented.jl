@@ -21,7 +21,8 @@ import Graphs
 
 export Node, LinkCutTree, EmptyAug, PathAug, PopAug,
        link_cut_tree, link!, cut!, evert!, set_root!, find_root!, expose!,
-       path_children, cc, nv_cc, get_connected_edge_list,
+       path_children, first_path_child, next_path_sibling,
+       cc, nv_cc, get_connected_edge_list,
        parents, findPath, get_farthest_node, get_diameter,
        pop_link_cut_tree, subtree_pop, set_pop!
 

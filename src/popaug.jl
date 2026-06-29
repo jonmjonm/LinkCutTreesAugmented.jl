@@ -28,7 +28,7 @@ new_aug(::Type{PopAug{T}}, ::Type{T}) where {T} =
     PopAug{T}(nothing, nothing, nothing, 0.0, 0.0, 0.0)
 
 # enumeration support (same intrusive list as PathAug)
-path_children(n::Node{T, PopAug{T}}) where {T} =
+@inline path_children(n::Node{T, PopAug{T}}) where {T} =
     PathChildren{Node{T, PopAug{T}}}(n.aug.firstChild)
 
 # child-list membership maintenance — fires everywhere (incl. rotations), like

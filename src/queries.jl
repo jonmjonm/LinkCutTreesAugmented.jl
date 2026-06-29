@@ -69,12 +69,14 @@ function get_farthest_node(node::Union{Node, Nothing}, linking::Node,
         deepest_dist = dd
     end
 
-    for n in path_children(node)
+    n = first_path_child(node)
+    while n !== nothing
         _, _, dn, dd = get_farthest_node(n, node, deepest_node, deepest_dist, cur_dist)
         if dd > deepest_dist
             deepest_node = dn
             deepest_dist = dd
         end
+        n = next_path_sibling(n)
     end
 
     linking, cur_dist, dn, dd = get_farthest_node(node.children[rc], linking,
@@ -92,12 +94,14 @@ function get_farthest_node(root::Node)
     evert!(root)
     lc, rc = root.reversed ? (2, 1) : (1, 2)
     _, _, node, dist = get_farthest_node(root.children[rc], root, reversed=root.reversed)
-    for n in path_children(root)
+    n = first_path_child(root)
+    while n !== nothing
         _, _, fn, d = get_farthest_node(n, root)
         if d > dist
             dist = d
             node = fn
         end
+        n = next_path_sibling(n)
     end
     return node, dist
 end

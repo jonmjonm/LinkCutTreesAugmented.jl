@@ -182,8 +182,10 @@ function nv_cc(node::Node, start::Bool=true)
         c = node.children[ii]
         c !== nothing && (count += nv_cc(c, false))
     end
-    for n in path_children(node)
+    n = first_path_child(node)
+    while n !== nothing
         count += nv_cc(n, false)
+        n = next_path_sibling(n)
     end
     return count
 end
@@ -197,8 +199,10 @@ function cc(node::Node{T,A}, start::Bool=true,
         c = node.children[ii]
         c !== nothing && cc(c, false, vec)
     end
-    for n in path_children(node)
+    n = first_path_child(node)
+    while n !== nothing
         cc(n, false, vec)
+        n = next_path_sibling(n)
     end
     return vec
 end
@@ -214,8 +218,10 @@ function get_connected_edge_list!(edges::Vector{<:Graphs.AbstractEdge},
     push!(edges, Graphs.Edge(node.vertex, linking.vertex))
     linking = node
     linking = get_connected_edge_list!(edges, node.children[rc], linking, reversed)
-    for n in path_children(node)
+    n = first_path_child(node)
+    while n !== nothing
         get_connected_edge_list!(edges, n, node)
+        n = next_path_sibling(n)
     end
     return linking
 end
@@ -226,8 +232,10 @@ function get_connected_edge_list(root::Node)
     evert!(root)
     lc, rc = root.reversed ? (2, 1) : (1, 2)
     get_connected_edge_list!(edges, root.children[rc], root, root.reversed)
-    for n in path_children(root)
+    n = first_path_child(root)
+    while n !== nothing
         get_connected_edge_list!(edges, n, root)
+        n = next_path_sibling(n)
     end
     return edges
 end
