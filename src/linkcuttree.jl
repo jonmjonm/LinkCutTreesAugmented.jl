@@ -41,7 +41,7 @@ displaced child becomes a path-child of `n`; `r` (if given) stops being one.
 All `pathParent` writes go through [`set_path_parent!`](@ref).
 """
 function replaceRightSubtree!(n::Node, r::Union{Node, Nothing}=nothing)
-    c = n.children[2]
+    c = n.right
     if c isa Node
         c.parent = nothing
         set_path_parent!(c, n)        # detach c into the virtual tree under n
@@ -79,7 +79,7 @@ Make represented-root `u` a child of `v` (in a different represented tree).
 """
 function link!(u::Node, v::Node)
     expose!(u)
-    if u.children[1] isa Node
+    if u.left isa Node
         throw(ArgumentError("u must be the root of its represented tree to link."))
     end
     expose!(v)
@@ -98,10 +98,10 @@ Detach `u` from its parent in the represented tree. `u` must not be the root.
 """
 function cut!(u::Node)
     expose!(u)
-    if !(u.children[1] isa Node)
+    if !(u.left isa Node)
         throw(ArgumentError("can't cut the root of the represented tree."))
     end
-    v = u.children[1]
+    v = u.left
     v.parent = nothing
     setLeft!(u, nothing)
     update_aug!(u)                    # u lost its left (ancestor) subtree
@@ -119,7 +119,7 @@ const set_root! = evert!
 function find_root!(u::Node)
     expose!(u)
     while true
-        c = u.children[1]        # narrow through a local so `u` stays ::Node
+        c = u.left        # narrow through a local so `u` stays ::Node
         c === nothing && break
         u = c
     end
@@ -179,7 +179,7 @@ function nv_cc(node::Node, start::Bool=true)
     start && expose!(node)
     count = 1
     for ii in 1:2
-        c = node.children[ii]
+        c = getchild(node, ii)
         c !== nothing && (count += nv_cc(c, false))
     end
     for n in path_children(node)
@@ -194,7 +194,7 @@ function cc(node::Node{T,A}, start::Bool=true,
     start && expose!(node)
     push!(vec, node.vertex)
     for ii in 1:2
-        c = node.children[ii]
+        c = getchild(node, ii)
         c !== nothing && cc(c, false, vec)
     end
     for n in path_children(node)
@@ -210,10 +210,10 @@ function get_connected_edge_list!(edges::Vector{<:Graphs.AbstractEdge},
     node === nothing && return linking
     reversed ⊻= node.reversed
     lc, rc = reversed ? (2, 1) : (1, 2)
-    linking = get_connected_edge_list!(edges, node.children[lc], linking, reversed)
+    linking = get_connected_edge_list!(edges, getchild(node, lc), linking, reversed)
     push!(edges, Graphs.Edge(node.vertex, linking.vertex))
     linking = node
-    linking = get_connected_edge_list!(edges, node.children[rc], linking, reversed)
+    linking = get_connected_edge_list!(edges, getchild(node, rc), linking, reversed)
     for n in path_children(node)
         get_connected_edge_list!(edges, n, node)
     end
@@ -225,7 +225,7 @@ function get_connected_edge_list(root::Node)
     edges = Vector{Graphs.Edge}(undef, 0)
     evert!(root)
     lc, rc = root.reversed ? (2, 1) : (1, 2)
-    get_connected_edge_list!(edges, root.children[rc], root, root.reversed)
+    get_connected_edge_list!(edges, getchild(root, rc), root, root.reversed)
     for n in path_children(root)
         get_connected_edge_list!(edges, n, root)
     end

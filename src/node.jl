@@ -31,10 +31,14 @@ mutable struct Node{T,A}
     vertex::T
     parent::Union{Node{T,A}, Nothing}
     pathParent::Union{Node{T,A}, Nothing}
-    children::Vector{Union{Node{T,A}, Nothing}}
+    left::Union{Node{T,A}, Nothing}     # splay-tree children, stored inline (no
+    right::Union{Node{T,A}, Nothing}    # per-node array). Index via getchild/setChild!.
     reversed::Bool
     aug::A
 end
+
+"Splay child `i` of `n` (1 = left, 2 = right)."
+@inline getchild(n::Node, i::Int) = i == 1 ? n.left : n.right
 
 """
 Path-children augmentation. The path-children are held as an **intrusive doubly
@@ -89,8 +93,7 @@ function Base.iterate(::PathChildren, node)
 end
 
 function Node{T,A}(vertex::T) where {T,A}
-    children = Union{Node{T,A}, Nothing}[nothing, nothing]
-    return Node{T,A}(vertex, nothing, nothing, children, false, new_aug(A, T))
+    return Node{T,A}(vertex, nothing, nothing, nothing, nothing, false, new_aug(A, T))
 end
 
 # Convenience: default to the path-children augmentation, which is what the
@@ -106,7 +109,11 @@ function setParent!(n::Union{Node, Nothing}, p::Union{Node, Nothing})
 end
 
 function setChild!(n::Node, i::Int, c::Union{Node, Nothing})
-    n.children[i] = c
+    if i == 1
+        n.left = c
+    else
+        n.right = c
+    end
     setParent!(c, n)
 end
 
@@ -191,10 +198,10 @@ function sameNode(n1::Union{Node, Nothing}, n2::Union{Node, Nothing})
     return n1 === n2
 end
 
-"Index `n` has in its parent's children vector. Requires a real parent."
+"Index `n` has among its parent's children (1 = left, 2 = right). Requires a real parent."
 function childIndex(n::Node)
-    c = n.parent.children
-    return sameNode(n, c[1]) ? 1 : (sameNode(n, c[2]) ? 2 : nothing)
+    p = n.parent
+    return sameNode(n, p.left) ? 1 : (sameNode(n, p.right) ? 2 : nothing)
 end
 
 function findSplayRoot(n::Node)
@@ -209,8 +216,8 @@ end
 function findExtreme(n::Node, largest::Bool)
     r = findSplayRoot(n)
     childIndex = largest ? 2 : 1
-    while r.children[childIndex] isa Node
-        r = r.children[childIndex]
+    while getchild(r, childIndex) isa Node
+        r = getchild(r, childIndex)
     end
     return r
 end

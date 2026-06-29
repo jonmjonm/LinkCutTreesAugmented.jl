@@ -11,7 +11,7 @@ function traverseSubtree!(A::Vector, n::Node, order::Int, reverse::Bool)
         if i == 1 && order == 2
             push!(A, n)
         end
-        c = n.children[(i ⊻ n.reversed ⊻ reverse) + 1]
+        c = getchild(n, (i ⊻ n.reversed ⊻ reverse) + 1)
         if c isa Node
             traverseSubtree!(A, c, order, n.reversed ⊻ reverse)
         end
@@ -57,7 +57,7 @@ function rotateUp(n::Node)
     end
 
     # move n's inner child into n's old slot under p, then make p n's child
-    setChild!(p, i, n.children[3 - i])
+    setChild!(p, i, getchild(n, 3 - i))
     setChild!(n, 3 - i, p)
 
     # recompute aggregates bottom-up: p (now n's child) then n (new local root).
@@ -90,12 +90,9 @@ function pushReversed!(n::Node)
         pushReversed!(n.parent)
     end
     if n.reversed
-        n.children[1], n.children[2] = n.children[2], n.children[1]
-        for c in n.children
-            if c isa Node
-                c.reversed = !c.reversed
-            end
-        end
+        n.left, n.right = n.right, n.left
+        l = n.left;  l isa Node && (l.reversed = !l.reversed)
+        r = n.right; r isa Node && (r.reversed = !r.reversed)
         n.reversed = false
     end
 end

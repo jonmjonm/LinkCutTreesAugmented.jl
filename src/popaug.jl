@@ -55,8 +55,8 @@ end
 end
 @inline function update_aug!(x::Node{T, PopAug{T}}) where {T}
     s = x.aug.val + x.aug.vir
-    l = x.children[1]; l isa Node && (s += l.aug.sum)
-    r = x.children[2]; r isa Node && (s += r.aug.sum)
+    l = x.left;  l isa Node && (s += l.aug.sum)
+    r = x.right; r isa Node && (s += r.aug.sum)
     x.aug.sum = s
     return nothing
 end
