@@ -16,24 +16,29 @@
 # ---------------------------------------------------------------------------
 
 mutable struct PopAug{T}
-    pathChildren::Set{Node{T, PopAug{T}}}
+    firstChild::Union{Node{T, PopAug{T}}, Nothing}   # intrusive child list (see PathAug)
+    nextSib::Union{Node{T, PopAug{T}}, Nothing}
+    prevSib::Union{Node{T, PopAug{T}}, Nothing}
     val::Float64
     sum::Float64
     vir::Float64
 end
 
 new_aug(::Type{PopAug{T}}, ::Type{T}) where {T} =
-    PopAug{T}(Set{Node{T, PopAug{T}}}(), 0.0, 0.0, 0.0)
+    PopAug{T}(nothing, nothing, nothing, 0.0, 0.0, 0.0)
 
-# enumeration support (same as PathAug)
-path_children(n::Node{T, PopAug{T}}) where {T} = n.aug.pathChildren
+# enumeration support (same intrusive list as PathAug)
+path_children(n::Node{T, PopAug{T}}) where {T} =
+    PathChildren{Node{T, PopAug{T}}}(n.aug.firstChild)
 
-# set membership maintenance — fires everywhere (incl. rotations), like PathAug.
+# child-list membership maintenance — fires everywhere (incl. rotations), like
+# PathAug. The subtree-sum (vir) is maintained separately by the virtual-attach/
+# detach hooks, only at genuine swap sites.
 function on_path_parent_change!(child::Node{T, PopAug{T}},
                                 old_parent::Union{Node, Nothing},
                                 new_parent::Union{Node, Nothing}) where {T}
-    old_parent isa Node && delete!(old_parent.aug.pathChildren, child)
-    new_parent isa Node && push!(new_parent.aug.pathChildren, child)
+    old_parent isa Node && _list_detach!(old_parent, child)
+    new_parent isa Node && _list_attach!(new_parent, child)
     return nothing
 end
 

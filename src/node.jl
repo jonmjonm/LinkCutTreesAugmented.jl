@@ -36,15 +36,57 @@ mutable struct Node{T,A}
     aug::A
 end
 
-"Path-children augmentation: each node stores the set of its path-children."
+"""
+Path-children augmentation. The path-children are held as an **intrusive doubly
+linked list** threaded through the nodes themselves: each node stores the head of
+its own child list (`firstChild`) and its position in its parent's list
+(`nextSib`/`prevSib`). Attach/detach are O(1) pointer splices with no allocation
+and no hashing — the link-cut invariant that a node has exactly one `pathParent`
+guarantees it sits in at most one list at a time.
+"""
 mutable struct PathAug{T}
-    pathChildren::Set{Node{T, PathAug{T}}}
+    firstChild::Union{Node{T, PathAug{T}}, Nothing}
+    nextSib::Union{Node{T, PathAug{T}}, Nothing}
+    prevSib::Union{Node{T, PathAug{T}}, Nothing}
 end
 
 # --- augmentation construction hook -----------------------------------------
 new_aug(::Type{EmptyAug}, ::Type{T}) where {T} = EmptyAug()
 new_aug(::Type{PathAug{T}}, ::Type{T}) where {T} =
-    PathAug{T}(Set{Node{T, PathAug{T}}}())
+    PathAug{T}(nothing, nothing, nothing)
+
+# --- intrusive child-list splice helpers (shared by PathAug and PopAug) ------
+# These touch only `.aug.{firstChild,nextSib,prevSib}`, so they apply to any node
+# whose payload carries those fields; they are never called on EmptyAug nodes.
+@inline function _list_attach!(parent::Node, child::Node)
+    h = parent.aug.firstChild
+    child.aug.prevSib = nothing
+    child.aug.nextSib = h
+    h === nothing || (h.aug.prevSib = child)
+    parent.aug.firstChild = child
+    return nothing
+end
+@inline function _list_detach!(parent::Node, child::Node)
+    p = child.aug.prevSib
+    q = child.aug.nextSib
+    p === nothing ? (parent.aug.firstChild = q) : (p.aug.nextSib = q)
+    q === nothing || (q.aug.prevSib = p)
+    child.aug.prevSib = nothing
+    child.aug.nextSib = nothing
+    return nothing
+end
+
+# Zero-allocation iterator over a node's intrusive child list.
+struct PathChildren{N}
+    head::Union{N, Nothing}
+end
+Base.IteratorSize(::Type{<:PathChildren}) = Base.SizeUnknown()
+Base.eltype(::Type{PathChildren{N}}) where {N} = N
+Base.iterate(pc::PathChildren) = pc.head === nothing ? nothing : (pc.head, pc.head)
+function Base.iterate(::PathChildren, node)
+    nxt = node.aug.nextSib
+    return nxt === nothing ? nothing : (nxt, nxt)
+end
 
 function Node{T,A}(vertex::T) where {T,A}
     children = Union{Node{T,A}, Nothing}[nothing, nothing]
@@ -105,8 +147,8 @@ Augmentation hook fired by [`set_path_parent!`](@ref). Default: no-op (used by
 function on_path_parent_change!(child::Node{T, PathAug{T}},
                                 old_parent::Union{Node, Nothing},
                                 new_parent::Union{Node, Nothing}) where {T}
-    old_parent isa Node && delete!(old_parent.aug.pathChildren, child)
-    new_parent isa Node && push!(new_parent.aug.pathChildren, child)
+    old_parent isa Node && _list_detach!(old_parent, child)
+    new_parent isa Node && _list_attach!(new_parent, child)
     return nothing
 end
 
@@ -132,10 +174,12 @@ end
 """
     path_children(n)
 
-The path-children of `n`. Defined only for `PathAug` nodes — represented-tree
-enumeration requires that augmentation.
+Iterate the path-children of `n` (zero-allocation walk of its intrusive child
+list). Defined only for augmentations that track path-children (`PathAug`,
+`PopAug`) — represented-tree enumeration requires one of those.
 """
-path_children(n::Node{T, PathAug{T}}) where {T} = n.aug.pathChildren
+path_children(n::Node{T, PathAug{T}}) where {T} =
+    PathChildren{Node{T, PathAug{T}}}(n.aug.firstChild)
 
 # ---------------------------------------------------------------------------
 # Splay-tree utilities
