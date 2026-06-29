@@ -3,6 +3,24 @@
 
 @testset "structure" begin
 
+    @testset "augmentation capability hierarchy + enforcement" begin
+        @test EmptyAug <: AbstractAug
+        @test PathAug{Int} <: PathCapable
+        @test PopAug{Int} <: SubtreeSumCapable <: PathCapable   # pop implies path
+        @test !(EmptyAug <: PathCapable)
+        te = LinkCutTree{Int, EmptyAug}(3)
+        tp = LinkCutTree{Int}(3)                                # PathAug
+        tq = pop_link_cut_tree(Graphs.path_graph(3), Graphs.Edge[], [1.0,2.0,3.0])
+        # capability-gated functions reject insufficient augmentations at dispatch
+        @test_throws MethodError path_children(te[1])           # needs PathCapable
+        @test_throws MethodError get_diameter(te[1])
+        @test_throws MethodError subtree_pop(tp[1])             # needs SubtreeSumCapable
+        # and accept sufficient ones (PopAug inherits the PathCapable methods)
+        @test path_children(tp[1]) isa Any
+        @test path_children(tq[1]) isa Any
+        @test subtree_pop(tq[1]) == 1.0
+    end
+
     @testset "EmptyAug payload is zero size and standard" begin
         nd = Node{Int, EmptyAug}(7)
         @test nd.vertex == 7

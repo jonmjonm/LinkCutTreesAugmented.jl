@@ -16,8 +16,20 @@
 # `set_path_parent!`, which notifies the augmentation via `on_path_parent_change!`.
 # ---------------------------------------------------------------------------
 
+# --- augmentation capability hierarchy --------------------------------------
+# Capabilities are expressed as abstract supertypes of the (concrete) payload
+# types and used ONLY in `where` clauses to gate functions. The node's `aug`
+# field stays concretely typed, so dispatch is resolved at compile time with no
+# runtime cost.
+#   AbstractAug          — any augmentation (core LCT ops work for all of these)
+#   PathCapable          — can enumerate the represented tree (path-children)
+#   SubtreeSumCapable    — additionally maintains a subtree aggregate (⇒ PathCapable)
+abstract type AbstractAug end
+abstract type PathCapable <: AbstractAug end
+abstract type SubtreeSumCapable <: PathCapable end
+
 "Augmentation payload for a standard (un-augmented) link-cut tree. Zero size."
-struct EmptyAug end
+struct EmptyAug <: AbstractAug end
 
 # `PathAug{T}` is defined after `Node` because it stores a `Set` of nodes.
 
@@ -44,7 +56,7 @@ its own child list (`firstChild`) and its position in its parent's list
 and no hashing — the link-cut invariant that a node has exactly one `pathParent`
 guarantees it sits in at most one list at a time.
 """
-mutable struct PathAug{T}
+mutable struct PathAug{T} <: PathCapable
     firstChild::Union{Node{T, PathAug{T}}, Nothing}
     nextSib::Union{Node{T, PathAug{T}}, Nothing}
     prevSib::Union{Node{T, PathAug{T}}, Nothing}
@@ -106,8 +118,8 @@ Prefer these over `for c in path_children(node)` on hot paths: the `for`-loop
 materializes a (non-isbits) iterator that persists across the loop and the
 compiler may heap-allocate it. These are pure pointer reads — nothing allocates.
 """
-@inline first_path_child(n::Node) = n.aug.firstChild
-@inline next_path_sibling(n::Node) = n.aug.nextSib
+@inline first_path_child(n::Node{T,A}) where {T,A<:PathCapable} = n.aug.firstChild
+@inline next_path_sibling(n::Node{T,A}) where {T,A<:PathCapable} = n.aug.nextSib
 
 function Node{T,A}(vertex::T) where {T,A}
     children = Union{Node{T,A}, Nothing}[nothing, nothing]
@@ -161,13 +173,12 @@ Augmentation hook fired by [`set_path_parent!`](@ref). Default: no-op (used by
 @inline on_path_parent_change!(::Node, ::Union{Node, Nothing},
                                ::Union{Node, Nothing}) = nothing
 
-# PathAug: maintain the reverse index. NOTE on determinism — callers that care
-# about `Set` iteration order (e.g. RNG-coupled traversals downstream) must fire
-# detach-before-attach so the delete/insert *sequence* matches the original
-# hand-written code.
-function on_path_parent_change!(child::Node{T, PathAug{T}},
+# Any PathCapable augmentation maintains the intrusive child list. NOTE on
+# determinism — fire detach-before-attach so the list mutation sequence is fixed.
+# (One method now covers PathAug and PopAug, since both are <: PathCapable.)
+function on_path_parent_change!(child::Node{T, A},
                                 old_parent::Union{Node, Nothing},
-                                new_parent::Union{Node, Nothing}) where {T}
+                                new_parent::Union{Node, Nothing}) where {T, A<:PathCapable}
     old_parent isa Node && _list_detach!(old_parent, child)
     new_parent isa Node && _list_attach!(new_parent, child)
     return nothing
@@ -199,8 +210,8 @@ Iterate the path-children of `n` (zero-allocation walk of its intrusive child
 list). Defined only for augmentations that track path-children (`PathAug`,
 `PopAug`) — represented-tree enumeration requires one of those.
 """
-@inline path_children(n::Node{T, PathAug{T}}) where {T} =
-    PathChildren{Node{T, PathAug{T}}}(n.aug.firstChild)
+@inline path_children(n::Node{T, A}) where {T, A<:PathCapable} =
+    PathChildren{Node{T, A}}(n.aug.firstChild)
 
 # ---------------------------------------------------------------------------
 # Splay-tree utilities

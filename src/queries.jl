@@ -90,7 +90,7 @@ function get_farthest_node(node::Union{Node, Nothing}, linking::Node,
 end
 
 "BFS-like query on the represented tree returning the node farthest from `root` and its distance."
-function get_farthest_node(root::Node)
+function get_farthest_node(root::Node{T,A}) where {T, A<:PathCapable}
     evert!(root)
     lc, rc = root.reversed ? (2, 1) : (1, 2)
     _, _, node, dist = get_farthest_node(root.children[rc], root, reversed=root.reversed)
@@ -107,7 +107,7 @@ function get_farthest_node(root::Node)
 end
 
 "Diameter (in edges) of the represented tree containing `root`."
-function get_diameter(root::Node)
+function get_diameter(root::Node{T,A}) where {T, A<:PathCapable}
     farthest_node, _ = get_farthest_node(root)
     _, diameter = get_farthest_node(farthest_node)
     evert!(root)

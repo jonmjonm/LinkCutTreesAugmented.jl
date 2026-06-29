@@ -19,7 +19,9 @@ module LinkCutTreesAugmented
 
 import Graphs
 
-export Node, LinkCutTree, EmptyAug, PathAug, PopAug,
+export Node, LinkCutTree,
+       AbstractAug, PathCapable, SubtreeSumCapable,
+       EmptyAug, PathAug, PopAug,
        link_cut_tree, link!, cut!, evert!, set_root!, find_root!, expose!,
        path_children, first_path_child, next_path_sibling,
        cc, nv_cc, get_connected_edge_list,

@@ -15,7 +15,7 @@
 # whole-tree traversal + per-call Dict.
 # ---------------------------------------------------------------------------
 
-mutable struct PopAug{T}
+mutable struct PopAug{T} <: SubtreeSumCapable
     firstChild::Union{Node{T, PopAug{T}}, Nothing}   # intrusive child list (see PathAug)
     nextSib::Union{Node{T, PopAug{T}}, Nothing}
     prevSib::Union{Node{T, PopAug{T}}, Nothing}
@@ -27,33 +27,23 @@ end
 new_aug(::Type{PopAug{T}}, ::Type{T}) where {T} =
     PopAug{T}(nothing, nothing, nothing, 0.0, 0.0, 0.0)
 
-# enumeration support (same intrusive list as PathAug)
-@inline path_children(n::Node{T, PopAug{T}}) where {T} =
-    PathChildren{Node{T, PopAug{T}}}(n.aug.firstChild)
+# Enumeration (`path_children`) and child-list maintenance (`on_path_parent_change!`)
+# are inherited from the single `A<:PathCapable` methods in node.jl — PopAug is
+# <: SubtreeSumCapable <: PathCapable.
 
-# child-list membership maintenance — fires everywhere (incl. rotations), like
-# PathAug. The subtree-sum (vir) is maintained separately by the virtual-attach/
-# detach hooks, only at genuine swap sites.
-function on_path_parent_change!(child::Node{T, PopAug{T}},
-                                old_parent::Union{Node, Nothing},
-                                new_parent::Union{Node, Nothing}) where {T}
-    old_parent isa Node && _list_detach!(old_parent, child)
-    new_parent isa Node && _list_attach!(new_parent, child)
-    return nothing
-end
-
-# subtree-sum maintenance — fires ONLY at genuine virtual-edge changes.
-@inline function on_virtual_attach!(parent::Node{T, PopAug{T}},
-                                    child::Node{T, PopAug{T}}) where {T}
+# subtree-sum maintenance — any SubtreeSumCapable aug (carrying val/sum/vir).
+# Fires ONLY at genuine virtual-edge changes; update_aug! after structural changes.
+@inline function on_virtual_attach!(parent::Node{T, A},
+                                    child::Node{T, A}) where {T, A<:SubtreeSumCapable}
     parent.aug.vir += child.aug.sum
     return nothing
 end
-@inline function on_virtual_detach!(parent::Node{T, PopAug{T}},
-                                    child::Node{T, PopAug{T}}) where {T}
+@inline function on_virtual_detach!(parent::Node{T, A},
+                                    child::Node{T, A}) where {T, A<:SubtreeSumCapable}
     parent.aug.vir -= child.aug.sum
     return nothing
 end
-@inline function update_aug!(x::Node{T, PopAug{T}}) where {T}
+@inline function update_aug!(x::Node{T, A}) where {T, A<:SubtreeSumCapable}
     s = x.aug.val + x.aug.vir
     l = x.children[1]; l isa Node && (s += l.aug.sum)
     r = x.children[2]; r isa Node && (s += r.aug.sum)
@@ -67,7 +57,7 @@ end
 Set a *singleton* node's weight to `v` (and its subtree sum accordingly). Intended
 for initialization before any links are made.
 """
-function set_pop!(n::Node{T, PopAug{T}}, v::Real) where {T}
+function set_pop!(n::Node{T, A}, v::Real) where {T, A<:SubtreeSumCapable}
     n.aug.val = Float64(v)
     n.aug.sum = n.aug.val + n.aug.vir
     return n
@@ -79,7 +69,7 @@ end
 Total weight of `v`'s represented subtree, relative to the tree's *current* root
 (set the root with `evert!` first). O(log n) amortized.
 """
-function subtree_pop(v::Node{T, PopAug{T}}) where {T}
+function subtree_pop(v::Node{T, A}) where {T, A<:SubtreeSumCapable}
     expose!(v)                 # v becomes deepest on its preferred path
     return v.aug.val + v.aug.vir   # ancestors sit in v's left splay child, excluded
 end

@@ -175,7 +175,7 @@ end
 # ---------------------------------------------------------------------------
 
 "Number of vertices in the represented tree containing `node`."
-function nv_cc(node::Node, start::Bool=true)
+function nv_cc(node::Node{T,A}, start::Bool=true) where {T, A<:PathCapable}
     start && expose!(node)
     count = 1
     for ii in 1:2
@@ -192,7 +192,7 @@ end
 
 "Vertices in the represented tree containing `node`, as a vector of labels."
 function cc(node::Node{T,A}, start::Bool=true,
-            vec::Vector{T}=Vector{T}(undef, 0)) where {T,A}
+            vec::Vector{T}=Vector{T}(undef, 0)) where {T, A<:PathCapable}
     start && expose!(node)
     push!(vec, node.vertex)
     for ii in 1:2
@@ -227,7 +227,7 @@ function get_connected_edge_list!(edges::Vector{<:Graphs.AbstractEdge},
 end
 
 "Edge list of the represented tree rooted at `root` (roots the tree at `root`)."
-function get_connected_edge_list(root::Node)
+function get_connected_edge_list(root::Node{T,A}) where {T, A<:PathCapable}
     edges = Vector{Graphs.Edge}(undef, 0)
     evert!(root)
     lc, rc = root.reversed ? (2, 1) : (1, 2)
