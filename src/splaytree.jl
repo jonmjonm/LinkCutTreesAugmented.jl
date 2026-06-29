@@ -59,6 +59,12 @@ function rotateUp(n::Node)
     # move n's inner child into n's old slot under p, then make p n's child
     setChild!(p, i, n.children[3 - i])
     setChild!(n, 3 - i, p)
+
+    # recompute aggregates bottom-up: p (now n's child) then n (new local root).
+    # The path-parent transfer above leaves the splay tree's total invariant, so
+    # no virtual-aggregate change is needed there.
+    update_aug!(p)
+    update_aug!(n)
 end
 
 "Splay `n` to the root of its splay tree without disturbing the in-order sequence."

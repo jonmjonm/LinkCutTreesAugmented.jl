@@ -3,6 +3,7 @@ using Test
 using Random
 
 const LCT = LinkCutTreesAugmented
+import Graphs
 import Graphs: src, dst
 
 # Brute-force reference: an explicit set of undirected edges that always forms a
@@ -83,6 +84,48 @@ end
         @test p[2] == 1 && p[3] == 2 && p[4] == 3 && p[5] == 4
         @test sort([n.vertex for n in findPath(t[5])]) == collect(1:5)
         @test get_diameter(t[1]) == 4             # 4 edges across the path
+    end
+
+    @testset "PopAug subtree_pop matches brute force under random link/cut/evert" begin
+        rng = MersenneTwister(424242)
+        n = 14
+        vals = Float64.(rand(rng, 1:9, n))
+        g = Graphs.path_graph(n)            # only used for nv in the builder
+        t = pop_link_cut_tree(g, Graphs.Edge[], vals)   # start as n singletons
+        edges = Set{Tuple{Int,Int}}()
+
+        # brute-force subtree pop of v when the component is rooted at `root`
+        function bf_subtree(edges, n, root, v)
+            adj = ref_adj(edges, n)
+            # parent via BFS from root
+            parent = fill(0, n); order = Int[]; seen = falses(n)
+            q = [root]; seen[root] = true
+            while !isempty(q)
+                u = popfirst!(q); push!(order, u)
+                for w in adj[u]; seen[w] || (seen[w]=true; parent[w]=u; push!(q,w)); end
+            end
+            sub = copy(vals)
+            for u in reverse(order)           # leaves first
+                parent[u] != 0 && (sub[parent[u]] += sub[u])
+            end
+            return sub[v]
+        end
+
+        for _ in 1:1200
+            a = rand(rng, 1:n); b = rand(rng, 1:n); a == b && continue
+            if rand(rng, Bool) && !isempty(edges)
+                (x, y) = rand(rng, collect(edges)); delete!(edges, (x, y))
+                evert!(t[x]); cut!(t[y])
+            elseif !(b in ref_component(edges, n, a))
+                push!(edges, edgekey(a, b)); evert!(t[a]); link!(t[a], t[b])
+            end
+            # query: pick a vertex and a root in its component, compare
+            root = rand(rng, 1:n)
+            evert!(t[root])
+            for v in collect(ref_component(edges, n, root))
+                @test subtree_pop(t[v]) ≈ bf_subtree(edges, n, root, v)
+            end
+        end
     end
 
     @testset "random ops match brute-force reference; PathAug invariant holds" begin

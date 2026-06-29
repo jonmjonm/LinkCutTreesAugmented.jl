@@ -19,14 +19,16 @@ module LinkCutTreesAugmented
 
 import Graphs
 
-export Node, LinkCutTree, EmptyAug, PathAug,
+export Node, LinkCutTree, EmptyAug, PathAug, PopAug,
        link_cut_tree, link!, cut!, evert!, set_root!, find_root!, expose!,
        path_children, cc, nv_cc, get_connected_edge_list,
-       parents, findPath, get_farthest_node, get_diameter
+       parents, findPath, get_farthest_node, get_diameter,
+       pop_link_cut_tree, subtree_pop, set_pop!
 
 include("node.jl")
 include("splaytree.jl")
 include("linkcuttree.jl")
 include("queries.jl")
+include("popaug.jl")
 
 end # module

@@ -45,11 +45,14 @@ function replaceRightSubtree!(n::Node, r::Union{Node, Nothing}=nothing)
     if c isa Node
         c.parent = nothing
         set_path_parent!(c, n)        # detach c into the virtual tree under n
+        on_virtual_attach!(n, c)      # c is now a virtual child of n
     end
     setRight!(n, r)
     if r isa Node
         set_path_parent!(r, nothing)  # r's old pathParent === n ⇒ removed from n's set
+        on_virtual_detach!(n, r)      # r left the virtual tree (now real child)
     end
+    update_aug!(n)                    # n's children/virtual contribution changed
 end
 
 """
@@ -84,6 +87,8 @@ function link!(u::Node, v::Node)
         throw(ArgumentError("Can't link two nodes in the same represented tree"))
     end
     set_path_parent!(u, v)
+    on_virtual_attach!(v, u)          # u becomes a virtual child of v
+    update_aug!(v)
 end
 
 """
@@ -99,6 +104,7 @@ function cut!(u::Node)
     v = u.children[1]
     v.parent = nothing
     setLeft!(u, nothing)
+    update_aug!(u)                    # u lost its left (ancestor) subtree
 end
 
 "Make `u` the root of its represented tree."

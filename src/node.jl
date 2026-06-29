@@ -110,6 +110,25 @@ function on_path_parent_change!(child::Node{T, PathAug{T}},
     return nothing
 end
 
+# --- subtree-aggregate hooks (no-ops by default) ----------------------------
+# These fire only where the represented structure genuinely changes, so an
+# aggregate augmentation (e.g. PopAug) can keep a maintained subtree sum.
+#
+#   update_aug!(x)               recompute x's aggregate from its splay children
+#                                + own value + virtual-children contribution.
+#                                Called after rotations and preferred-child swaps.
+#   on_virtual_attach!(p, c)     c just became a *virtual* child of p (left the
+#                                preferred path / was linked under p).
+#   on_virtual_detach!(p, c)     c stopped being a virtual child of p (joined the
+#                                preferred path as a real child).
+#
+# NB these are distinct from `on_path_parent_change!`: that one also fires during
+# splay rotations (where the subtree total is invariant and the aggregate must
+# NOT change), so aggregate maintenance lives here, only at genuine swap sites.
+@inline update_aug!(::Node) = nothing
+@inline on_virtual_attach!(::Node, ::Node) = nothing
+@inline on_virtual_detach!(::Node, ::Node) = nothing
+
 """
     path_children(n)
 
