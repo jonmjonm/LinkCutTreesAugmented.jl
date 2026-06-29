@@ -72,6 +72,19 @@ end
         @test got == Set([(1,2), (2,3), (3,4), (4,5)])
     end
 
+    @testset "parents / findPath / diameter on a known path" begin
+        t = LinkCutTree{Int}(5)
+        for v in 1:4
+            evert!(t[v]); link!(t[v], t[v+1])    # path 1-2-3-4-5, rooted last evert at 4
+        end
+        evert!(t[1])                              # root at 1
+        p = parents(t)
+        @test p[1] == 1                           # root maps to itself
+        @test p[2] == 1 && p[3] == 2 && p[4] == 3 && p[5] == 4
+        @test sort([n.vertex for n in findPath(t[5])]) == collect(1:5)
+        @test get_diameter(t[1]) == 4             # 4 edges across the path
+    end
+
     @testset "random ops match brute-force reference; PathAug invariant holds" begin
         rng = MersenneTwister(20260628)
         n = 16
