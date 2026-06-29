@@ -118,8 +118,10 @@ const set_root! = evert!
 "Return the root node of `u`'s represented tree."
 function find_root!(u::Node)
     expose!(u)
-    while u.children[1] !== nothing
-        u = u.children[1]
+    while true
+        c = u.children[1]        # narrow through a local so `u` stays ::Node
+        c === nothing && break
+        u = c
     end
     return u
 end
