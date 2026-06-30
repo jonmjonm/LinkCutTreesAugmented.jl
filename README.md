@@ -1,5 +1,7 @@
 # LinkCutTreesAugmented.jl
 
+[![CI](https://github.com/jonmjonm/LinkCutTreesAugmented.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/jonmjonm/LinkCutTreesAugmented.jl/actions/workflows/ci.yml)
+
 A [link-cut tree](https://dl.acm.org/doi/10.1145/3828.3835) in Julia with a small
 **augmentation hook seam**. The base structure is a textbook link-cut forest;
 augmentations (extra per-node data maintained incrementally) are opted into via
