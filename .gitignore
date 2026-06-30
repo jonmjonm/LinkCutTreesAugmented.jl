@@ -3,3 +3,4 @@ Manifest.toml
 .DS_Store
 *.cov
 *.jl.mem
+INTRUSIVE_LIST_RESULTS.md
