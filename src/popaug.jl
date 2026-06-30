@@ -15,6 +15,22 @@
 # whole-tree traversal + per-call Dict.
 # ---------------------------------------------------------------------------
 
+"""
+    PopAug{T}
+
+Maintained subtree-sum augmentation. Besides the `PathAug`-style intrusive
+path-child list (`firstChild`/`nextSib`/`prevSib`), each node stores three
+weights:
+
+  * `val` — this vertex's own weight (e.g. population),
+  * `sum` — total weight of this node's *represented subtree*, including the
+    virtual subtrees hanging off via path-children,
+  * `vir` — sum of the `sum`s of this node's virtual (path-) children.
+
+The hooks maintain the invariant
+`sum == val + vir + left_splay_child.sum + right_splay_child.sum`,
+so [`subtree_pop`](@ref) answers a subtree-weight query in `O(log n)`.
+"""
 mutable struct PopAug{T} <: SubtreeSumCapable
     firstChild::Union{Node{T, PopAug{T}}, Nothing}   # intrusive child list (see PathAug)
     nextSib::Union{Node{T, PopAug{T}}, Nothing}

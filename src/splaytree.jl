@@ -2,7 +2,14 @@
 # Splay-tree internals: lazy reversal, rotation, splay.
 # ---------------------------------------------------------------------------
 
-# internal worker for traverseSubtree
+"""
+    traverseSubtree!(A, n, order, reverse)
+
+Internal recursive worker for [`traverseSubtree`](@ref). Appends the splay subtree
+rooted at `n` to `A` in the requested `order` (`1`=pre, `2`=in, `3`=post),
+threading the accumulated lazy-`reversed` parity through `reverse` so child slots
+are visited in the correct left/right sense without first pushing the flags down.
+"""
 function traverseSubtree!(A::Vector, n::Node, order::Int, reverse::Bool)
     if order == 1
         push!(A, n)

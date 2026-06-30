@@ -26,7 +26,9 @@ end
 
 LinkCutTree{T}(s::Integer) where {T<:Integer} = LinkCutTree{T, PathAug{T}}(s)
 
+"`lct[i]` returns the `Node` for vertex `i`."
 Base.getindex(lct::LinkCutTree, i::Integer) = lct.nodes[i]
+"Number of vertices in the forest."
 Base.length(lct::LinkCutTree) = length(lct.nodes)
 
 # ---------------------------------------------------------------------------
@@ -130,18 +132,22 @@ end
 # Builders from Graphs.jl graphs
 # ---------------------------------------------------------------------------
 
-# Resolve a user-supplied augmentation argument to a concrete payload type for
-# vertex-label type `T`. `PathAug` (the UnionAll) becomes `PathAug{T}`; concrete
-# payloads (e.g. `EmptyAug`) are passed through.
+"""
+    _resolve_aug(::Type{T}, aug)
+
+Resolve a user-supplied augmentation argument to a concrete payload type for
+vertex-label type `T`. The `PathAug` UnionAll becomes `PathAug{T}`; an
+already-concrete payload (e.g. `EmptyAug`, `PopAug{T}`) is passed through.
+"""
 _resolve_aug(::Type{T}, ::Type{PathAug}) where {T} = PathAug{T}
 _resolve_aug(::Type{T}, ::Type{A}) where {T,A} = A
 
 """
     link_cut_tree(g; aug=PathAug)
 
-Build a link-cut tree from a rooted, directed tree/forest `g`: an edge `c → n`
-(i.e. `n ∈ neighbors(g, ...)` with `c` its in-neighbour here) links child `c`
-under parent `n`.
+Build a link-cut tree from a rooted, directed tree/forest `g` whose edges point
+from parent to child: for each vertex `n` and each out-neighbour `c ∈ neighbors(g,
+n)`, the edge `n → c` links child `c` under parent `n`.
 """
 function link_cut_tree(g::AG; aug::Type=PathAug) where {U, AG<:Graphs.AbstractGraph{U}}
     A = _resolve_aug(U, aug)
@@ -207,7 +213,16 @@ function cc(node::Node{T,A}, start::Bool=true,
     return vec
 end
 
-# internal worker for get_connected_edge_list
+"""
+    get_connected_edge_list!(edges, node, linking, reversed=false)
+
+Internal recursive worker for [`get_connected_edge_list`](@ref). Walks the splay
+subtree at `node` (and its hanging path-children) in represented-tree depth order,
+pushing each tree edge `(node, parent)` into `edges`, where `parent` is the
+in-order predecessor tracked by `linking`. `reversed` carries the accumulated
+lazy-reversal parity so child slots are read in the right left/right sense.
+Returns the deepest node reached, to thread as the `linking` predecessor upward.
+"""
 function get_connected_edge_list!(edges::Vector{<:Graphs.AbstractEdge},
                                   node::Union{Node, Nothing},
                                   linking::Node, reversed::Bool=false)
