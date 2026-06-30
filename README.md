@@ -49,6 +49,17 @@ For a bare standard tree with no enumeration overhead, use `EmptyAug`:
 t = LinkCutTree{Int, EmptyAug}(5)
 ```
 
+## API reference
+
+See [`functions_calls.md`](functions_calls.md) for a complete reference of all
+public data types and functions — with full argument types — exported by the
+package: the augmentation hierarchy (`EmptyAug`, `PathAug`, `PopAug`), the
+`Node` / `LinkCutTree` types, structural operations, builders, enumerators,
+queries, and the `PopAug` subtree-sum operations. It also documents the **hook
+seam** (`set_path_parent!`, `on_path_parent_change!`, `update_aug!`,
+`on_virtual_attach!` / `on_virtual_detach!`, `new_aug`) and how the payload
+types use it, including how to add a new augmentation.
+
 ## Status
 
 Early scaffold (v0.1.0). Base operations + `PathAug` enumeration are implemented
