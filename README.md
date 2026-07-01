@@ -9,7 +9,7 @@ the node's payload type, without forking the core operations.
 
 > Extracted from the link-cut tree used in
 > [CycleWalk.jl](https://github.com/jonmjonm/CycleWalk.jl). The name
-> `LinkCutTrees.jl` was taken, hence *Augmented*.
+> `LinkCutTreesAugmented.jl` was taken, chosen because the link-cut tree structure has the ability to be augmented by additional payloads.
 
 ## Design
 
