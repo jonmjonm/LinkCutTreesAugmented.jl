@@ -62,9 +62,9 @@ types use it, including how to add a new augmentation.
 
 ## Status
 
-Early scaffold (v0.1.0). Base operations + `PathAug` enumeration are implemented
+Base operations + `PathAug` enumeration are implemented
 and tested against a brute-force reference. Maintained scalar aggregates (e.g.
-subtree sums) are a planned follow-up behind the same hook interface.
+subtree sums) are implemented in CycleWalk.jl behind the same hook interface. The package is now ready to use inside CycleWalk.jl .
 
 ## License
 
