@@ -14,6 +14,8 @@ maintained through hooks the core calls at its mutation points — chiefly
 The bundled `PathAug` augmentation maintains each node's path-children set,
 enabling enumeration of the whole represented tree (`cc`, `nv_cc`,
 `get_connected_edge_list`).
+
+The CycleWalk.jl gives an example of building an augmentation further specializing `PathAug` 
 """
 module LinkCutTreesAugmented
 
