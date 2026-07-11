@@ -32,6 +32,60 @@ Base.getindex(lct::LinkCutTree, i::Integer) = lct.nodes[i]
 Base.length(lct::LinkCutTree) = length(lct.nodes)
 
 # ---------------------------------------------------------------------------
+# Fast structural copy
+# ---------------------------------------------------------------------------
+
+# Translate a node pointer from the source forest to the cloned forest. Every node
+# reference points at some `nodes[j]`, whose `vertex` label is `j` (the array is
+# built with `nodes[i].vertex == i` and labels never change), so the clone of a node
+# is found by indexing `newnodes` with the source node's vertex label.
+@inline _remap(::Nothing, newnodes) = nothing
+@inline _remap(n::Node, newnodes) = @inbounds newnodes[n.vertex]
+
+# Copy an augmentation payload's fields into the freshly-built clone `dst`, remapping
+# its intrusive child-list pointers. One method per augmentation type.
+_copy_aug_fields!(::EmptyAug, ::EmptyAug, newnodes) = nothing
+function _copy_aug_fields!(dst::PathAug, o::PathAug, newnodes)
+    dst.firstChild = _remap(o.firstChild, newnodes)
+    dst.nextSib    = _remap(o.nextSib, newnodes)
+    dst.prevSib    = _remap(o.prevSib, newnodes)
+    return nothing
+end
+# `_copy_aug_fields!(::PopAug, ...)` is defined in popaug.jl, where `PopAug` exists.
+
+"""
+    copy(lct::LinkCutTree)
+
+Return an independent copy of `lct`. Because every node reference in the forest
+points at an array slot whose `vertex` label is its index, the whole cyclic pointer
+structure can be rebuilt in two linear passes with an index remap — far cheaper than
+a generic `deepcopy`, which chases the same pointers through an `IdDict`. The clone
+shares no mutable state with `lct`: structural edits (`link!`, `cut!`, `evert!`, …)
+on one leave the other untouched.
+"""
+function Base.copy(lct::LinkCutTree{T,A}) where {T,A}
+    old = lct.nodes
+    s = length(old)
+    newnodes = Vector{Union{Node{T,A}, Nothing}}(undef, s)
+    @inbounds for i in 1:s
+        o = old[i]
+        newnodes[i] = o === nothing ? nothing : Node{T,A}(o.vertex)
+    end
+    @inbounds for i in 1:s
+        o = old[i]
+        o === nothing && continue
+        m = newnodes[i]
+        m.parent      = _remap(o.parent, newnodes)
+        m.pathParent  = _remap(o.pathParent, newnodes)
+        m.children[1] = _remap(o.children[1], newnodes)
+        m.children[2] = _remap(o.children[2], newnodes)
+        m.reversed    = o.reversed
+        _copy_aug_fields!(m.aug, o.aug, newnodes)
+    end
+    return LinkCutTree{T,A}(newnodes)
+end
+
+# ---------------------------------------------------------------------------
 # Structural operations
 # ---------------------------------------------------------------------------
 

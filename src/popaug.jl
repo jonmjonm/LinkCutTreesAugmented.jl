@@ -43,6 +43,18 @@ end
 new_aug(::Type{PopAug{T}}, ::Type{T}) where {T} =
     PopAug{T}(nothing, nothing, nothing, 0.0, 0.0, 0.0)
 
+# Fast-copy hook for `copy(::LinkCutTree)` (declared in linkcuttree.jl): remap the
+# intrusive child-list pointers and carry over the subtree-sum payload verbatim.
+function _copy_aug_fields!(dst::PopAug, o::PopAug, newnodes)
+    dst.firstChild = _remap(o.firstChild, newnodes)
+    dst.nextSib    = _remap(o.nextSib, newnodes)
+    dst.prevSib    = _remap(o.prevSib, newnodes)
+    dst.val = o.val
+    dst.sum = o.sum
+    dst.vir = o.vir
+    return nothing
+end
+
 # Enumeration (`path_children`) and child-list maintenance (`on_path_parent_change!`)
 # are inherited from the single `A<:PathCapable` methods in node.jl — PopAug is
 # <: SubtreeSumCapable <: PathCapable.
