@@ -27,7 +27,9 @@ export Node, LinkCutTree,
        link_cut_tree, link!, cut!, evert!, set_root!, find_root!, expose!,
        path_children, first_path_child, next_path_sibling,
        cc, nv_cc, get_connected_edge_list,
-       parents, findPath, get_farthest_node, get_diameter,
+    parents, findPath, get_farthest_node, get_diameter,
+    lazy_clear!, find_right_most_ancestor, find_left_most_ancestor,
+    get_lct_neighbors, neighbors_huh, print_lct, diff_lct,
        pop_link_cut_tree, subtree_pop, set_pop!
 
 include("node.jl")
