@@ -1,7 +1,7 @@
 name = "LinkCutTreesAugmented"
 uuid = "c1bc6fde-6912-42fb-b8df-7f936dc5be7d"
 authors = ["Jonathan Mattingly <jonathan.mattingly@gmail.com>", "Gregory Herschlag <gjh@math.duke.edu>"]
-version = "0.1.1"
+version = "0.2"
 
 [deps]
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
